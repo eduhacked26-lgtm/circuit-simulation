@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Circuit Électrique – Simulation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --electron: #ffd700;
+    --wire: #2a5298;
+    --wire-glow: #4a7fd8;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --success: #22c55e;
+    --font: 'Space Grotesk', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 20px;
+    font-family: var(--mono);
+  }
+
+  .sim-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  canvas {
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    display: block;
+    background: var(--surface);
+    box-shadow: 0 0 40px rgba(0, 212, 255, 0.08);
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 9px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.03em;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn.danger { }
+  .btn.danger:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .info-panel {
+    margin-top: 16px;
+    width: 100%;
+    max-width: 700px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    text-align: center;
+  }
+
+  .metric-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: var(--mono);
+  }
+
+  .metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--accent);
+    margin-top: 2px;
+  }
+
+  .metric-unit {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    width: 100%;
+    max-width: 700px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 20px;
+  }
+
+  .slider-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    min-width: 110px;
+    font-family: var(--mono);
+  }
+
+  input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 4px;
+    cursor: pointer;
+  }
+
+  .slider-val {
+    font-size: 0.85rem;
+    font-family: var(--mono);
+    color: var(--accent);
+    min-width: 48px;
+    text-align: right;
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 12px;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .circuit-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+    font-family: var(--mono);
+  }
+</style>
+</head>
+<body>
+
+<div class="creator-bar">
+  <span class="creator-name">Mrs Majdoub</span>
+  <span class="creator-sep">·</span>
+  <span class="creator-role">Instructional Designer</span>
+  <span class="creator-sep">·</span>
+  <span class="creator-etwin">🌐 eTwinning Ambassador</span>
+</div>
+<h1>Circuit Électrique</h1>
+<p class="subtitle">Simulation interactive — Courant, Tension, Résistance (Loi d'Ohm)</p>
+
+<div class="sim-wrapper">
+  <canvas id="c" width="700" height="420"></canvas>
+</div>
+
+<div class="controls">
+  <button class="btn active" id="btnSeries" onclick="setMode('series')">Circuit série</button>
+  <button class="btn" id="btnParallel" onclick="setMode('parallel')">Circuit parallèle</button>
+  <button class="btn" id="btnToggle" onclick="toggleSwitch()">⏻ Interrupteur ouvert</button>
+  <button class="btn danger" id="btnShort" onclick="toggleShort()">⚡ Court-circuit</button>
+</div>
+
+<div class="slider-row">
+  <span class="slider-label">Tension (V)</span>
+  <input type="range" id="voltSlider" min="1" max="24" value="12" oninput="updateSliders()">
+  <span class="slider-val" id="voltVal">12 V</span>
+</div>
+<div class="slider-row">
+  <span class="slider-label">Résistance R1 (Ω)</span>
+  <input type="range" id="r1Slider" min="1" max="100" value="30" oninput="updateSliders()">
+  <span class="slider-val" id="r1Val">30 Ω</span>
+</div>
+<div class="slider-row">
+  <span class="slider-label">Résistance R2 (Ω)</span>
+  <input type="range" id="r2Slider" min="1" max="100" value="20" oninput="updateSliders()">
+  <span class="slider-val" id="r2Val">20 Ω</span>
+</div>
+
+<div class="info-panel">
+  <div class="metric">
+    <div class="metric-label">Tension</div>
+    <div class="metric-value" id="mVolt">12</div>
+    <div class="metric-unit">Volts (V)</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Courant</div>
+    <div class="metric-value" id="mCurrent">0.24</div>
+    <div class="metric-unit">Ampères (A)</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Résistance totale</div>
+    <div class="metric-value" id="mResist">50</div>
+    <div class="metric-unit">Ohms (Ω)</div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#ffd700"></div> Électron (porteur de charge)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#00d4ff"></div> Fil conducteur</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ff6b35"></div> Résistance (consomme énergie)</div>
+</div>
+
+<p class="circuit-label">I = U / R &nbsp;|&nbsp; Loi d'Ohm &nbsp;|&nbsp; P = U × I</p>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 700, H = 420;
+
+let mode = 'series';
+let switchOpen = false;
+let shortCircuit = false;
+let voltage = 12, r1 = 30, r2 = 20;
+let electrons = [];
+let frame = 0;
+let animId;
+
+// Circuit path definitions
+const paths = {
+  series: [
+    // top wire
+    {x1:80,y1:80,x2:620,y2:80},
+    // right wire
+    {x1:620,y1:80,x2:620,y2:340},
+    // bottom wire
+    {x1:620,y1:340,x2:80,y2:340},
+    // left wire (battery)
+    {x1:80,y1:340,x2:80,y2:80}
+  ],
+  parallel: [
+    {x1:80,y1:80,x2:620,y2:80},
+    {x1:620,y1:80,x2:620,y2:340},
+    {x1:620,y1:340,x2:80,y2:340},
+    {x1:80,y1:340,x2:80,y2:80}
+  ]
+};
+
+// Electron class
+class Electron {
+  constructor(pos, speed) {
+    this.pos = pos; // 0–1 along the full loop
+    this.speed = speed;
+    this.trail = [];
+    this.branch = Math.random() < 0.5 ? 'top' : 'bottom'; // for parallel
+  }
+}
+
+function getLoopPoint(t) {
+  // Series: rectangle loop
+  // top: 0->0.25, right: 0.25->0.5, bottom: 0.5->0.75, left: 0.75->1
+  t = ((t % 1) + 1) % 1;
+  if (mode === 'series') {
+    if (t < 0.25) {
+      let p = t/0.25;
+      return {x: 80 + p*(620-80), y: 80};
+    } else if (t < 0.5) {
+      let p = (t-0.25)/0.25;
+      return {x: 620, y: 80 + p*(340-80)};
+    } else if (t < 0.75) {
+      let p = (t-0.5)/0.25;
+      return {x: 620 - p*(620-80), y: 340};
+    } else {
+      let p = (t-0.75)/0.25;
+      return {x: 80, y: 340 - p*(340-80)};
+    }
+  } else {
+    // Parallel: two branches for top-right segment
+    return getLoopPoint_parallel(t, this ? this.branch : 'top');
+  }
+}
+
+function getLoopPointP(t, branch) {
+  t = ((t % 1) + 1) % 1;
+  // left wire: 0.75–1.0 and battery
+  // top wire to split: 0–0.12
+  // branch top R1: 0.12–0.38
+  // branch bottom R2: 0.12–0.38 (same t range, different y)
+  // rejoin right wire: 0.38–0.5
+  // bottom wire: 0.5–0.75
+  const cx = 350; // center x for parallel split
+  if (t < 0.15) {
+    let p = t/0.15;
+    return {x: 80 + p*(cx-80), y: 80};
+  } else if (t < 0.45) {
+    let p = (t-0.15)/0.30;
+    if (branch === 'top') {
+      return {x: cx + p*(620-cx), y: 80};
+    } else {
+      // lower branch
+      let bx = cx + p*(620-cx);
+      let by = 80 + Math.sin(p*Math.PI)*140; // arc down through middle
+      return {x: bx, y: by};
+    }
+  } else if (t < 0.50) {
+    let p = (t-0.45)/0.05;
+    if (branch === 'top') return {x: 620, y: 80 + p*130};
+    else return {x: 620, y: 210 + p*0};
+  } else if (t < 0.65) {
+    let p = (t-0.50)/0.15;
+    return {x: 620, y: 210 + p*(340-210)};
+  } else if (t < 0.85) {
+    let p = (t-0.65)/0.20;
+    return {x: 620-p*(620-80), y: 340};
+  } else {
+    let p = (t-0.85)/0.15;
+    return {x: 80, y: 340-p*(340-80)};
+  }
+}
+
+function initElectrons() {
+  electrons = [];
+  const count = 18;
+  for (let i = 0; i < count; i++) {
+    electrons.push({
+      pos: i/count,
+      branch: (i % 2 === 0) ? 'top' : 'bottom',
+      trail: []
+    });
+  }
+}
+
+function getSpeed() {
+  if (switchOpen) return 0;
+  if (shortCircuit) return 0.012;
+  let I = voltage / getTotalR();
+  return 0.0008 + I * 0.0003;
+}
+
+function getTotalR() {
+  if (shortCircuit) return 0.01;
+  if (mode === 'series') return r1 + r2;
+  else return (r1 * r2) / (r1 + r2);
+}
+
+function getCurrent() {
+  if (switchOpen) return 0;
+  return voltage / getTotalR();
+}
+
+function updateMetrics() {
+  let I = getCurrent();
+  let R = getTotalR();
+  document.getElementById('mVolt').textContent = voltage;
+  document.getElementById('mCurrent').textContent = shortCircuit ? '∞' : I.toFixed(2);
+  document.getElementById('mResist').textContent = shortCircuit ? '~0' : R.toFixed(1);
+}
+
+function drawWire(x1,y1,x2,y2, glowing, broken) {
+  ctx.save();
+  if (broken) {
+    ctx.setLineDash([8,10]);
+    ctx.strokeStyle = '#334155';
+  } else if (glowing) {
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = '#00d4ff';
+    ctx.strokeStyle = '#00d4ff';
+  } else {
+    ctx.strokeStyle = '#2a5298';
+  }
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBattery(x, yc) {
+  // Battery symbol at left wire center
+  ctx.save();
+  const bh = 50;
+  ctx.strokeStyle = '#00d4ff';
+  ctx.lineWidth = 2;
+  ctx.fillStyle = '#111827';
+  ctx.fillRect(x-18, yc-bh/2, 36, bh);
+  ctx.strokeRect(x-18, yc-bh/2, 36, bh);
+  // + terminal
+  ctx.fillStyle = '#22c55e';
+  ctx.fillRect(x-10, yc-bh/2-8, 20, 8);
+  ctx.fillStyle = '#ef4444';
+  ctx.fillRect(x-10, yc+bh/2, 20, 8);
+  // label
+  ctx.fillStyle = '#22c55e';
+  ctx.font = '700 11px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('+', x, yc-bh/2+14);
+  ctx.fillStyle = '#ef4444';
+  ctx.fillText('−', x, yc+bh/2-4);
+  // voltage
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = '700 12px Space Grotesk, sans-serif';
+  ctx.fillText(voltage+'V', x, yc+4);
+  ctx.restore();
+}
+
+function drawResistor(cx, cy, horizontal, label, color) {
+  ctx.save();
+  const w = 54, h = 22;
+  ctx.translate(cx, cy);
+  if (!horizontal) ctx.rotate(Math.PI/2);
+  // glow
+  ctx.shadowBlur = shortCircuit ? 0 : 16;
+  ctx.shadowColor = color || '#ff6b35';
+  // body
+  const grad = ctx.createLinearGradient(-w/2, -h/2, w/2, h/2);
+  grad.addColorStop(0, '#7c2d12');
+  grad.addColorStop(0.5, color || '#ff6b35');
+  grad.addColorStop(1, '#7c2d12');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.roundRect(-w/2, -h/2, w, h, 4);
+  ctx.fill();
+  ctx.strokeStyle = '#fed7aa';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // bands (resistor color code decoration)
+  [-10, 0, 10].forEach((bx, i) => {
+    ctx.fillStyle = ['#f59e0b','#374151','#22c55e'][i];
+    ctx.fillRect(bx-2, -h/2, 4, h);
+  });
+  ctx.shadowBlur = 0;
+  if (!horizontal) { ctx.rotate(-Math.PI/2); }
+  ctx.fillStyle = '#fde68a';
+  ctx.font = '600 11px Space Grotesk, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, 0, horizontal ? cy < 200 ? -20 : 20 : 30);
+  ctx.restore();
+}
+
+function drawLamp(cx, cy) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  const intensity = switchOpen ? 0 : shortCircuit ? 1 : Math.min(1, getCurrent() / 5);
+  // glow
+  if (intensity > 0.05) {
+    ctx.shadowBlur = 30 * intensity;
+    ctx.shadowColor = `rgba(255,215,0,${intensity})`;
+  }
+  // bulb circle
+  const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
+  grad.addColorStop(0, `rgba(255,255,200,${intensity})`);
+  grad.addColorStop(1, `rgba(255,165,0,${intensity * 0.3})`);
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = intensity > 0.1 ? '#fbbf24' : '#374151';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, 22, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+  // filament
+  ctx.strokeStyle = `rgba(255,200,50,${intensity > 0.1 ? 0.9 : 0.3})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-8, 8);
+  ctx.lineTo(-4,-4); ctx.lineTo(0, 8); ctx.lineTo(4,-4); ctx.lineTo(8, 8);
+  ctx.stroke();
+  // label
+  ctx.fillStyle = '#fde68a';
+  ctx.font = '600 11px Space Grotesk, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.shadowBlur = 0;
+  ctx.fillText('Lampe', 0, 36);
+  ctx.restore();
+}
+
+function drawSwitch(cx, cy) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = switchOpen ? '#ef4444' : '#22c55e';
+  ctx.lineWidth = 2.5;
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = switchOpen ? '#ef4444' : '#22c55e';
+  // pivot
+  ctx.beginPath(); ctx.arc(-16, 0, 4, 0, Math.PI*2);
+  ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+  // blade
+  ctx.beginPath(); ctx.moveTo(-12, 0);
+  if (switchOpen) ctx.lineTo(8, -18);
+  else ctx.lineTo(12, 0);
+  ctx.stroke();
+  // end contact
+  ctx.beginPath(); ctx.arc(16, 0, 4, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = switchOpen ? '#ef4444' : '#22c55e';
+  ctx.font = '600 10px Space Grotesk, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(switchOpen ? 'Ouvert' : 'Fermé', 0, 18);
+  ctx.restore();
+}
+
+function drawElectrons() {
+  const speed = getSpeed();
+  electrons.forEach(e => {
+    e.pos += speed;
+    if (e.pos >= 1) e.pos -= 1;
+
+    let pt;
+    if (mode === 'series') {
+      pt = getLoopPoint(e.pos);
+    } else {
+      pt = getLoopPointP(e.pos, e.branch);
+    }
+
+    // trail
+    e.trail.push({...pt});
+    if (e.trail.length > 8) e.trail.shift();
+
+    // draw trail
+    e.trail.forEach((tp, i) => {
+      const alpha = (i / e.trail.length) * 0.4;
+      ctx.save();
+      ctx.fillStyle = `rgba(255,215,0,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(tp.x, tp.y, 3, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // draw electron
+    ctx.save();
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#ffd700';
+    ctx.fillStyle = '#ffd700';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function drawScene() {
+  ctx.clearRect(0, 0, W, H);
+
+  const active = !switchOpen;
+
+  if (mode === 'series') {
+    // Wires
+    drawWire(80,80, 280,80, active); // top-left
+    drawWire(420,80, 620,80, active); // top-right
+    drawWire(620,80, 620,340, active); // right
+    drawWire(80,340, 620,340, active); // bottom
+    drawWire(80,80, 80,175, active); // battery top
+    drawWire(80,225, 80,340, active); // battery bottom
+
+    // Components
+    drawBattery(80, 210);
+    drawSwitch(350, 80);
+    drawResistor(310, 340, true, 'R1 = '+r1+'Ω');
+    drawResistor(530, 210, false, 'R2 = '+r2+'Ω');
+    drawLamp(620, 80);
+
+  } else {
+    // Parallel mode
+    drawWire(80,80, 340,80, active);
+    drawWire(340,80, 620,80, active);
+    drawWire(620,80, 620,340, active);
+    drawWire(80,340, 620,340, active);
+    drawWire(80,80, 80,175, active);
+    drawWire(80,225, 80,340, active);
+    // split wire
+    drawWire(340,80, 340,340, active, false);
+    
+    drawBattery(80, 210);
+    drawSwitch(200, 80);
+    drawResistor(480, 80, true, 'R1 = '+r1+'Ω');
+    drawResistor(480, 340, true, 'R2 = '+r2+'Ω');
+    drawLamp(620, 210);
+  }
+
+  drawElectrons();
+
+  // Ohm's law overlay
+  ctx.save();
+  ctx.fillStyle = 'rgba(17,24,39,0.85)';
+  ctx.beginPath();
+  ctx.roundRect(W-170, H-70, 158, 58, 8);
+  ctx.fill();
+  ctx.strokeStyle = '#1e2d45';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px JetBrains Mono, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('Loi d\'Ohm:', W-158, H-52);
+  ctx.fillStyle = '#00d4ff';
+  ctx.font = '700 13px JetBrains Mono, monospace';
+  ctx.fillText('I = U / R', W-158, H-35);
+  const I = getCurrent();
+  ctx.fillStyle = switchOpen ? '#ef4444' : '#ffd700';
+  ctx.font = '600 11px JetBrains Mono, monospace';
+  ctx.fillText(switchOpen ? 'Circuit ouvert' : `= ${I.toFixed(2)} A`, W-158, H-18);
+  ctx.restore();
+
+  // Short circuit warning
+  if (shortCircuit) {
+    ctx.save();
+    ctx.fillStyle = `rgba(239,68,68,${0.3 + 0.2*Math.sin(frame*0.1)})`;
+    ctx.font = '700 13px Space Grotesk, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠ COURT-CIRCUIT — Courant très élevé!', W/2, H-12);
+    ctx.restore();
+  }
+}
+
+function animate() {
+  frame++;
+  drawScene();
+  updateMetrics();
+  animId = requestAnimationFrame(animate);
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btnSeries').classList.toggle('active', m==='series');
+  document.getElementById('btnParallel').classList.toggle('active', m==='parallel');
+  initElectrons();
+}
+
+function toggleSwitch() {
+  switchOpen = !switchOpen;
+  const btn = document.getElementById('btnToggle');
+  btn.textContent = switchOpen ? '⏻ Interrupteur ouvert' : '⏻ Interrupteur fermé';
+  btn.classList.toggle('active', !switchOpen);
+}
+
+function toggleShort() {
+  shortCircuit = !shortCircuit;
+  const btn = document.getElementById('btnShort');
+  btn.classList.toggle('active', shortCircuit);
+}
+
+function updateSliders() {
+  voltage = +document.getElementById('voltSlider').value;
+  r1 = +document.getElementById('r1Slider').value;
+  r2 = +document.getElementById('r2Slider').value;
+  document.getElementById('voltVal').textContent = voltage+' V';
+  document.getElementById('r1Val').textContent = r1+' Ω';
+  document.getElementById('r2Val').textContent = r2+' Ω';
+}
+
+initElectrons();
+animate();
+</script>
+</body>
+</html>
